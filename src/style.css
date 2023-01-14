@@ -50,6 +50,11 @@ h6 {
   padding-top: 10px;
 }
 
+iframe {
+  border-color: #6c5ce7;
+  border-width: 10px;
+}
+
 .v-container {
   border: var(--main-color) 5px solid;
   position: absolute;
@@ -147,7 +152,7 @@ h6 {
 }
 
 .navigation__button:hover {
-  box-shadow: 8px 12px var(--main-color);
+  box-shadow: -32px 12px var(--main-color);
 }
 
 .navigation__button--current {
@@ -178,4 +183,18 @@ h6 {
 #poem {
   justify-content: center;
   text-align: center;
+}
+
+@media (max-width: 768px) or (max-height: 650px) {
+  .h-container {
+    flex-wrap: wrap;
+  }
+  .navigation {
+    flex-basis: 100%;
+    height: 80px;
+    /* position: absolute;
+    top: -1000%;
+    left: -1000%;
+    opacity: 0; */
+  }
 }

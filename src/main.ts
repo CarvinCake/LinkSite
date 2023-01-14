@@ -3,7 +3,7 @@ const navigationButtons = document.getElementsByClassName(
   navigationButtonClass
 );
 
-class NavigationSection {
+class InfopageSection {
   name: string;
   buttonTitle: string;
   htmlElement: HTMLElement;
@@ -18,13 +18,23 @@ class NavigationSection {
     this.htmlElement.innerText = "Зробив цей сайт";
     return this;
   }
-  createEmptySection() {
-    // this.htmlElement.id = "app";
-    // const script = this.htmlElement.appendChild(
-    //   document.createElement("script") as Node
-    // ) as HTMLScriptElement;
-    // script.src = "src/Game/game.ts";
-    // script.type = "module";
+  createArtSection() {
+    const sketchfabEmbed = `
+    <div class="sketchfab-embed-wrapper"> 
+    <iframe title="Cursed Skull" 
+      width="600" height="500"
+      frameborder="1" 
+      allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" 
+      allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking 
+      execution-while-out-of-viewport execution-while-not-rendered web-share 
+      src="https://sketchfab.com/models/6c5d834846eb41318f854a66c1f9f8b9/embed?autostart=1&ui_theme=dark"> 
+    </iframe> 
+    <p style="font-size: 13px; font-weight: normal; margin: 5px; color: #4A4A4A;"> 
+      <a href="https://sketchfab.com/3d-models/cursed-skull-6c5d834846eb41318f854a66c1f9f8b9?utm_medium=embed&utm_campaign=share-popup&utm_content=6c5d834846eb41318f854a66c1f9f8b9" target="_blank" style="font-weight: bold; color: #1CAAD9;"> Cursed Skull </a> by 
+      <a href="https://sketchfab.com/carvincake?utm_medium=embed&utm_campaign=share-popup&utm_content=6c5d834846eb41318f854a66c1f9f8b9" target="_blank" style="font-weight: bold; color: #1CAAD9;"> Arseny </a> on <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=6c5d834846eb41318f854a66c1f9f8b9" target="_blank" style="font-weight: bold; color: #1CAAD9;">Sketchfab</a>
+    </p></div>`;
+    this.htmlElement = document.createElement("div");
+    this.htmlElement.innerHTML = sketchfabEmbed;
     return this;
   }
   createParagraph() {
@@ -58,21 +68,21 @@ class NavigationSection {
   }
 }
 
-const aboutSection = new NavigationSection(
+const aboutSection = new InfopageSection(
   "About",
   "Щось про мене"
 ).createAboutSection();
-const anthemSection = new NavigationSection(
+const anthemSection = new InfopageSection(
   "Anthem",
   "Державний Гімн України"
 ).createParagraph();
-const emptySection = new NavigationSection(
+const artSection = new InfopageSection(
   "Empty",
-  "Пусте"
-).createEmptySection();
+  "творчі доробки"
+).createArtSection();
 
 for (let i = 0; i < navigationButtons.length; i++) {
-  const NavigationSection = [aboutSection, anthemSection, emptySection];
+  const NavigationSection = [aboutSection, anthemSection, artSection];
   const button = navigationButtons[i];
   button.textContent = NavigationSection[i].buttonTitle;
   button.addEventListener("click", function (this: typeof button) {
@@ -89,8 +99,8 @@ for (let i = 0; i < navigationButtons.length; i++) {
       case anthemSection.buttonTitle:
         newSection = anthemSection.htmlElement;
         break;
-      case emptySection.buttonTitle:
-        newSection = emptySection.htmlElement;
+      case artSection.buttonTitle:
+        newSection = artSection.htmlElement;
         break;
       default:
         break;
