@@ -2,17 +2,19 @@
   --main-color: #6c5ce7;
   --secondary-color: #a29bfe;
   --background-color: #2d3436;
+  --accent-color: #e4c203;
 }
 html,
 body {
   width: 100vw;
   height: 100vh;
   background-color: var(--background-color);
-  margin: 0;
+  justify-content: center;
+  align-items: center;
 }
 @supports (scrollbar-color: red blue) {
   * {
-    scrollbar-color: var(--main-color) #a29bfe;
+    scrollbar-color: var(--main-color) var(--secondary-color);
     scrollbar-width: auto;
   }
 }
@@ -64,11 +66,28 @@ iframe {
   right: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.header {
+.section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.section--recentlinks {
+  border-color: var(--main-color);
+  background-color: var(--background-color);
+  border: solid var(--main-color) 10px;
+  min-width: 300px;
+  width: 0.4em;
+  margin: 14px;
+  /* padding: 0 16px 16px 16px; */
+}
+.section--recentlinks__title {
   background-color: var(--main-color);
   color: #a29bfe;
   display: flex;
@@ -84,15 +103,16 @@ iframe {
 .header__logo {
   flex-basis: 25%;
   font-size: 1.5em;
-  padding-top: 0.7em;
+  color: var(--secondary-color);
+  padding-left: 1.5em;
 }
 
-.header__button {
+.mainlink {
   align-items: center;
   background-color: var(--main-color);
-  border: #a29bfe 5px solid;
+  border: var(--secondary-color) 5px solid;
   border-radius: 20px;
-  color: #a29bfe;
+  color: var(--secondary-color);
   display: flex;
   flex-basis: 10%;
   font-size: medium;
@@ -104,7 +124,7 @@ iframe {
   transition: color, background-color, 0.25s;
 }
 
-.header__button:hover {
+.mainlink:hover {
   background-color: var(--secondary-color);
   color: var(--main-color);
 }
@@ -170,14 +190,24 @@ iframe {
   padding: 40px;
 }
 
-.mono-paragraph {
-  flex-basis: auto;
+.recentlink {
+  width: auto;
+  color: var(--secondary-color);
   font-family: "Roboto Mono", monospace;
-  font-size: large;
-  font-style: 0;
-  font-weight: 600;
-  margin: 0;
-  padding: 10px;
+  font-size: 1em;
+  font-weight: 700;
+  border: solid var(--secondary-color);
+  border-width: 0 0 4px 0;
+  padding: 8px;
+  margin: 8px 16px 16px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.recentlink:hover {
+  color: var(--main-color);
+  border: solid var(--main-color);
+  border-width: 0 0 4px 0;
+  background-color: var(--secondary-color);
 }
 
 #poem {
@@ -185,16 +215,40 @@ iframe {
   text-align: center;
 }
 
-@media (max-width: 768px) or (max-height: 650px) {
-  .h-container {
-    flex-wrap: wrap;
-  }
-  .navigation {
-    flex-basis: 100%;
-    height: 80px;
-    /* position: absolute;
-    top: -1000%;
-    left: -1000%;
-    opacity: 0; */
+#mc_embed_signup {
+  font-family: "Roboto Mono", monospace;
+  display: inline-block;
+  background: var(--secondary-color);
+  /* clear: left; */
+  font: 12px Helvetica, Arial, sans-serif;
+  width: 280px;
+  max-width: 280px;
+  color: var(--background-color);
+  border-radius: 14px;
+}
+
+.mc_button {
+  background-color: var(--main-color);
+  color: var(--accent-color);
+  padding: 8px;
+  border-color: var(--background-color);
+}
+.mc_button:hover {
+  background-color: var(--accent-color);
+  color: var(--main-color);
+  border-color: var(--main-color);
+}
+
+.mc_text {
+  font-family: "Roboto Mono", monospace;
+  background-color: var(--background-color);
+  border-radius: 6px;
+  color: whitesmoke;
+}
+
+@media screen and (min-width: 900px) {
+  .page {
+    flex-direction: row;
+    align-items: start;
   }
 }
