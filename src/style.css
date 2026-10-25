@@ -189,7 +189,8 @@ a {
 }
 .tape__track {
   display: flex;
-  width: max-content; /* moved from main.js */
+  width: max-content;
+  animation: slide 28s linear infinite;
 }
 .tape__track > div {
   flex: none;
@@ -210,8 +211,8 @@ a {
   content: "*";
   margin-inline: 1.8em;
 }
-.tape__track b {
-  font-weight: 400;
+@keyframes slide {
+  to { transform: translateX(-50%); }
 }
 
 /* ---------- stage ---------- */

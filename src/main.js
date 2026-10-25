@@ -148,36 +148,22 @@ if (Math.random() < 0.4) {
 }
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-const cell = (l) => (l.live ? `<b data-live="${l.live}">${LIVE[l.live]()}</b>` : esc(l.text))
+const cell = (l) => esc(l.live ? LIVE[l.live]() : l.text)
 // Each kind of line appears exactly once per pass. The two identical copies exist only so the loop
 // is seamless; each copy is at least as wide as the screen, so nothing is ever visible twice.
 const track = document.querySelector('.tape__track')
-const copy = `<div>${shuffle(lines).map((l) => `<span>${cell(l)}</span>`).join('')}</div>`
-track.innerHTML = copy + copy
-
+const order = shuffle(lines)
+let shown = ''
 function refreshTape() {
-	for (const el of track.querySelectorAll('[data-live]')) el.textContent = LIVE[el.dataset.live]()
+	const copy = `<div>${order.map((l) => `<span>${cell(l)}</span>`).join('')}</div>`
+	if (copy === shown) return
+	// A changed line rebuilds the whole tape from fresh elements rather than editing text in place: phone
+	// browsers could leave an edited slot blank for good if it changed while the page was being scrolled.
+	shown = copy
+	track.innerHTML = copy + copy
 }
+refreshTape()
 setInterval(() => !document.hidden && refreshTape(), 5000)
-
-// The tape is rolled from here, not by a CSS animation: mobile browsers hand a CSS transform animation to
-// the GPU and may never paint the parts of the long track that start off screen, so lines arrived blank.
-// Moving it by hand repaints the visible strip every frame instead. Speed is fixed in pixels, so the tape
-// reads at the same pace on every screen.
-const TAPE_SPEED = 48 // px per second
-if (!calm) {
-	let copyWidth = track.firstElementChild.offsetWidth
-	new ResizeObserver(() => (copyWidth = track.firstElementChild.offsetWidth)).observe(track.firstElementChild)
-	let x = 0
-	let prev = 0
-	const roll = (now) => {
-		x = (x + (Math.min(now - prev, 100) / 1000) * TAPE_SPEED) % copyWidth
-		prev = now
-		track.style.transform = `translateX(${-x}px)`
-		requestAnimationFrame(roll)
-	}
-	requestAnimationFrame(roll)
-}
 
 // Floating stickers (the badges at the top right) have momentum. Taps give a ring a kick that stacks
 // when they come fast. Holding winds it up (the ring creeps backwards and the sticker squashes while
