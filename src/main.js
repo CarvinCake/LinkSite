@@ -160,6 +160,25 @@ function refreshTape() {
 }
 setInterval(() => !document.hidden && refreshTape(), 5000)
 
+// The tape is rolled from here, not by a CSS animation: mobile browsers hand a CSS transform animation to
+// the GPU and may never paint the parts of the long track that start off screen, so lines arrived blank.
+// Moving it by hand repaints the visible strip every frame instead. Speed is fixed in pixels, so the tape
+// reads at the same pace on every screen.
+const TAPE_SPEED = 48 // px per second
+if (!calm) {
+	let copyWidth = track.firstElementChild.offsetWidth
+	new ResizeObserver(() => (copyWidth = track.firstElementChild.offsetWidth)).observe(track.firstElementChild)
+	let x = 0
+	let prev = 0
+	const roll = (now) => {
+		x = (x + (Math.min(now - prev, 100) / 1000) * TAPE_SPEED) % copyWidth
+		prev = now
+		track.style.transform = `translateX(${-x}px)`
+		requestAnimationFrame(roll)
+	}
+	requestAnimationFrame(roll)
+}
+
 // Floating stickers (the badges at the top right) have momentum. Taps give a ring a kick that stacks
 // when they come fast. Holding winds it up (the ring creeps backwards and the sticker squashes while
 // energy builds) and it only launches when you let go. Drag then slows it back to its idle drift.
