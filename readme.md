@@ -1,116 +1,33 @@
-cd /../../var/www/carvincake.com/ && unzip -o dist.zip && sudo systemctl restart nginx.service 
+# carvincake link page
 
-# Phaser 3 + TypeScript + Vite.js Template
-> Make Phaser 3 games with TypeScript and modern frontend tooling.
+Personal link page for carvincake, live at carvincake.com. It is a single static page in a lo-fi zine / photocopier style, built with Vite and plain JavaScript (no framework).
 
-![License](https://img.shields.io/badge/license-MIT-green)
+## Files
 
-This is a TypeScript specific fork of [phaser3-vite-template](https://github.com/ourcade/phaser3-vite-template).
+- `index.html`: markup
+- `src/style.css`: all styles
+- `src/main.js`: interactions. Click to stamp marks; after 13 marks they explode into pixel-art bursts. A scrolling tape shows randomized and live lines. Stickers spin with momentum; the Kinoradar ticket tears its stub off before navigating.
+- `public/`: fonts, favicons, `CNAME`
 
-## Prerequisites
-
-You'll need [Node.js](https://nodejs.org/en/) and [npm](https://www.npmjs.com/) installed.
-
-It is highly recommended to use [Node Version Manager](https://github.com/nvm-sh/nvm) (nvm) to install Node.js and npm.
-
-For Windows users there is [Node Version Manager for Windows](https://github.com/coreybutler/nvm-windows).
-
-Install Node.js and `npm` with `nvm`:
+## Scripts
 
 ```bash
-nvm install node
-
-nvm use node
-```
-
-Replace 'node' with 'latest' for `nvm-windows`.
-
-## Getting Started
-
-You can clone this repository or use [degit](https://github.com/Rich-Harris/degit) to scaffold the project like this:
-
-```bash
-npx degit https://github.com/ourcade/phaser3-typescript-vite-template my-folder-name
-cd my-folder-name
-
 npm install
+npm start           # Vite dev server on port 8000, host 0.0.0.0
+npm run build       # production build into dist/
+npm run preview     # serve the built dist/ locally
+npm run deploy      # zip dist/ to dist.zip and scp it to the server
+npx eslint src      # lint
 ```
 
-Start development server:
+## Deployment
 
-```
-npm run start
-```
+`npm run deploy` uploads `dist.zip` to the server. Then, on the server, run:
 
-To create a production build:
-
-```
-npm run build
+```bash
+cd /../../var/www/carvincake.com/ && unzip -o dist.zip && sudo systemctl restart nginx.service
 ```
 
-Production files will be placed in the `dist` folder. Then upload those files to a web server. 🎉
+This unpacks the new build over the site directory and restarts nginx.
 
-## Project Structure
-
-```
-    .
-    ├── dist
-    ├── node_modules
-    ├── public
-    ├── src
-    │   ├── HelloWorldScene.ts
-    │   ├── main.ts
-	├── index.html
-    ├── package.json
-```
-
-TypeScript files are intended for the `src` folder. `main.ts` is the entry point referenced by `index.html`.
-
-Other than that there is no opinion on how you should structure your project.
-
-There is an example `HelloWorldScene.ts` file that can be placed inside a `scenes` folder to organize by type or elsewhere to organize by function. For example, you can keep all files specific to the HelloWorld scene in a `hello-world` folder.
-
-It is all up to you!
-
-## Static Assets
-
-Any static assets like images or audio files should be placed in the `public` folder. It'll then be served from the root. For example: http://localhost:8000/images/my-image.png
-
-Example `public` structure:
-
-```
-    public
-    ├── images
-    │   ├── my-image.png
-    ├── music
-    │   ├── ...
-    ├── sfx
-    │   ├── ...
-```
-
-They can then be loaded by Phaser with `this.image.load('my-image', 'images/my-image.png')`.
-
-# TypeScript ESLint
-
-This template uses a basic `typescript-eslint` set up for code linting.
-
-It does not aim to be opinionated.
-
-[See here for rules to turn on or off](https://eslint.org/docs/rules/).
-
-## Dev Server Port
-
-You can change the dev server's port number by modifying the `vite.config.ts` file. Look for the `server` section:
-
-```js
-{
-	// ...
-	server: { host: '0.0.0.0', port: 8000 },
-}
-```
-
-Change 8000 to whatever you want.
-
-## License
-
-[MIT License](https://github.com/ourcade/phaser3-vite-template/blob/master/LICENSE)
+There is also a GitHub Actions workflow, `.github/workflows/deploy.yml`, which builds the project and publishes `dist` to GitHub Pages on every push to `master`.

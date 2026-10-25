@@ -1,6 +1,6 @@
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
 const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches
-const root = document.documentElement
+const name = document.querySelector('.name')
 
 // The misprint on the name separates as the pointer moves
 if (finePointer && !calm) {
@@ -9,8 +9,8 @@ if (finePointer && !calm) {
 		if (queued) return
 		queued = true
 		requestAnimationFrame(() => {
-			root.style.setProperty('--ox', (e.clientX / innerWidth - 0.5).toFixed(3))
-			root.style.setProperty('--oy', (e.clientY / innerHeight - 0.5).toFixed(3))
+			name.style.setProperty('--ox', (e.clientX / innerWidth - 0.5).toFixed(3))
+			name.style.setProperty('--oy', (e.clientY / innerHeight - 0.5).toFixed(3))
 			queued = false
 		})
 	})
@@ -33,7 +33,6 @@ const CURSOR_BLAST = { speed: 1.25, flashScale: 1.15 } // the small explosions: 
 let marksMade = 0
 
 function stamp(x, y) {
-	if (calm) return
 	if (marksMade >= MAX_MARKS) {
 		// Out of marks: each further click blows up the oldest mark, and once none are left, the click itself
 		const oldest = layer.firstElementChild
@@ -53,9 +52,21 @@ function stamp(x, y) {
 	marksMade++
 	refreshTape()
 }
+// A mouse stamps the moment it presses. A finger only stamps on a clean tap, so scrolling the page
+// (which cancels the pointer) or dragging doesn't litter it with marks.
+const TAP_SLOP = 10
+let touchStart = null
 addEventListener('pointerdown', (e) => {
-	if (!e.target.closest('a, button')) stamp(e.pageX, e.pageY)
+	if (!e.isPrimary || e.button !== 0 || e.target.closest('a, button')) return
+	if (e.pointerType === 'mouse') stamp(e.pageX, e.pageY)
+	else touchStart = { id: e.pointerId, x: e.clientX, y: e.clientY }
 })
+addEventListener('pointerup', (e) => {
+	if (touchStart?.id !== e.pointerId) return
+	if (Math.hypot(e.clientX - touchStart.x, e.clientY - touchStart.y) < TAP_SLOP) stamp(e.pageX, e.pageY)
+	touchStart = null
+})
+addEventListener('pointercancel', () => (touchStart = null))
 
 // The tape: a different mix of lines on every visit, some of them live
 const store = {
@@ -356,6 +367,16 @@ function createSticker(el, index) {
 	]
 	const TORN_AT = 6 // from this frame on the stub is clearly off the ticket, so the link starts loading
 	let peeling = false
+	let peelTimer = 0
+	function unpeel() {
+		clearTimeout(peelTimer)
+		peeling = false
+		stub.removeAttribute('transform')
+		stub.style.opacity = ''
+		body.removeAttribute('transform')
+		stamp.style.visibility = 'hidden'
+		bits.forEach((b) => (b.style.visibility = 'hidden'))
+	}
 	function peel() {
 		if (peeling) return
 		peeling = true
@@ -372,20 +393,14 @@ function createSticker(el, index) {
 				b.setAttribute('transform', `translate(${n * (4 + k)} ${n * (k % 2 ? 5 : -4) + n * n})`)
 			})
 			if (i === TORN_AT) location.href = el.href // keeps animating until the new page takes over
-			if (++i < FRAMES.length) setTimeout(tick, 70)
+			// if the navigation never happens (offline, blocked), the ticket heals after a while
+			peelTimer = ++i < FRAMES.length ? setTimeout(tick, 70) : setTimeout(unpeel, 3000)
 		}
 		tick()
 	}
 	// coming back through the browser's back button should find an unredeemed ticket
-	addEventListener('pageshow', (e) => {
-		if (!e.persisted || !peeling) return
-		peeling = false
-		stub.removeAttribute('transform')
-		stub.style.opacity = ''
-		body.removeAttribute('transform')
-		stamp.style.visibility = 'hidden'
-		bits.forEach((b) => (b.style.visibility = 'hidden'))
-	})
+	addEventListener('pagehide', () => peeling && unpeel())
+	addEventListener('pageshow', (e) => e.persisted && peeling && unpeel())
 
 	function detonate() {
 		exploding = true
@@ -415,8 +430,13 @@ function createSticker(el, index) {
 		}
 	}
 
-	function release() {
+	function release(e) {
 		if (held === null) return
+		if (e?.type === 'pointercancel' || e?.type === 'blur') {
+			held = null
+			el.style.scale = ''
+			return
+		}
 		const now = performance.now()
 		const wasTap = now - held < TAP_MS
 		const c = charge(now)
@@ -430,6 +450,7 @@ function createSticker(el, index) {
 	}
 
 	el.addEventListener('pointerdown', (e) => {
+		if (e.button !== 0) return // a right click keeps its menu and doesn't spin anything
 		clearTimeout(pendingNav)
 		justHeld = false
 		launch()
@@ -441,6 +462,9 @@ function createSticker(el, index) {
 	el.addEventListener('pointerup', release)
 	el.addEventListener('pointercancel', release)
 	el.addEventListener('lostpointercapture', release)
+	addEventListener('blur', release)
+	// a long press on touch is a wind-up, not a request for the link's context menu
+	el.addEventListener('contextmenu', (e) => held !== null && e.preventDefault())
 	el.addEventListener('click', (e) => {
 		if (e.detail === 0) {
 			// keyboard: a link follows normally, a button just gets a kick
@@ -470,7 +494,7 @@ function createSticker(el, index) {
 			let a = angle
 			if (!frame) {
 				const idle = ring.getAnimations()[0]
-				a = idle ? (idle.currentTime / (period * 1000)) * 360 : 0
+				a = idle ? (idle.effect.getComputedTiming().progress ?? 0) * 360 : 0
 			}
 			const since = ((((a % 360) + 360) % 360) - hit + 360) % 360
 			const lit = since <= WEDGE ? 1 : Math.max(0, 1 - (since - WEDGE) / 70)

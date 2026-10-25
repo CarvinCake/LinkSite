@@ -27,17 +27,26 @@
 *::after {
   box-sizing: border-box;
 }
+/* Horizontal overflow is clipped on body itself, not the viewport: mobile browsers widen the layout
+   viewport to fit anything poking out (the tilted tape, the block shadows), which zooms the whole page out.
+   Setting html's own overflow-x stops body's from propagating to the viewport. */
 html {
+  overflow-x: hidden;
   background: var(--ink);
   -webkit-text-size-adjust: 100%;
   scrollbar-color: var(--violet) var(--ink);
 }
 body {
   position: relative;
-  display: flow-root; /* keeps the tape's top margin inside body, so page coordinates match the body's box */
+  /* a column of tape, stage and footer: the stage takes the spare height so the footer sits at the bottom.
+     Flex also keeps the tape's top margin inside body, so page coordinates match the body's box. */
+  display: flex;
+  flex-direction: column;
   margin: 0;
+  min-height: 100vh;
   min-height: 100svh;
   overflow-x: hidden;
+  overflow-x: clip;
   background: var(--ink);
   color: var(--paper);
   font-family: var(--type);
@@ -205,11 +214,14 @@ a {
 .stage {
   position: relative;
   z-index: 2;
+  flex: 1 0 auto;
   width: min(100%, 1180px);
   margin: 0 auto;
   padding: 36px 20px 24px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 34px;
+  align-content: center;
 }
 
 /* ---------- hero ---------- */
@@ -234,6 +246,7 @@ a {
 .name::before,
 .name::after {
   content: attr(data-text);
+  content: attr(data-text) / ""; /* the misprints are decoration: screen readers hear the name once */
   position: absolute;
   inset: 0;
   z-index: -1;
@@ -259,15 +272,12 @@ a {
   from { clip-path: inset(0 100% 0 0); }
   to { clip-path: inset(0 0 0 0); }
 }
+/* a quiet grey caption tucked under the wordmark */
 .aka {
-  margin: 14px 0 0 2px;
-  font-size: 0.9rem;
-  letter-spacing: 0.06em;
-  color: var(--lilac);
-}
-.aka::before {
-  content: "\2014\00a0";
-  color: var(--hot);
+  margin: 6px 0 0 0.3em;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: #a3a3ad;
 }
 
 .stickers {
@@ -294,6 +304,11 @@ a {
   border: 0;
   background: none;
   cursor: pointer;
+  /* stickers are pressed and held, so no text selection, callout menu or double-tap zoom */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   rotate: var(--r);
   transition: rotate 0.35s cubic-bezier(0.3, 1.6, 0.5, 1), scale 0.35s;
   animation: slap 0.5s steps(5) calc(0.5s + var(--i, 0) * 0.12s) backwards;
@@ -404,9 +419,11 @@ a {
   pointer-events: none;
   image-rendering: pixelated;
 }
-.sticker:hover {
-  rotate: calc(var(--r) * -0.45);
-  scale: 1.07;
+@media (hover: hover) {
+  .sticker:hover {
+    rotate: calc(var(--r) * -0.45);
+    scale: 1.07;
+  }
 }
 .sticker:active {
   scale: 0.94;
@@ -501,6 +518,9 @@ a {
   font-style: normal;
   font-size: 0.92rem;
   opacity: 0.85;
+}
+.b2 .tx i {
+  opacity: 1; /* paper on violet needs the full contrast */
 }
 .ar {
   width: 26px;
@@ -648,6 +668,11 @@ a {
 /* ---------- footer ---------- */
 
 .foot {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  padding: 6px 20px 22px;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -676,19 +701,51 @@ a {
   opacity: 0.7;
 }
 
-/* ---------- wide screens ---------- */
+/* ---------- phones and tablets ---------- */
 
-@media (min-width: 900px) {
-  .stage {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    column-gap: 56px;
-    row-gap: 40px;
-    padding: 44px 32px 24px;
-  }
+/* The name tag and the sticker row share the line under the wordmark; on the narrowest phones the
+   stickers wrap onto their own line instead of landing on the tag. */
+@media (max-width: 1039px) {
   .hero {
-    grid-column: 1 / -1;
-    padding-bottom: 84px; /* room for the sticker row under the wordmark */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px 12px;
   }
+  .name {
+    flex-basis: 100%;
+  }
+  .aka {
+    align-self: flex-start; /* stays tucked under the name, not centred against the taller stickers */
+    margin-top: -8px;
+  }
+  .stickers {
+    position: static;
+    width: auto;
+    margin-left: auto;
+    gap: clamp(12px, 4vw, 48px);
+  }
+  .sticker {
+    width: clamp(76px, 21vw, 112px);
+  }
+  .sticker--kino {
+    width: clamp(100px, 28vw, 150px);
+  }
+  .corner--a {
+    width: 32px;
+    top: 62px;
+    left: 8px;
+  }
+}
+
+@media (max-width: 639px) {
+  .tx b {
+    font-size: clamp(0.9rem, 4.4vw, 1.12rem);
+  }
+}
+
+/* two columns of links once each block has room for the longest label beside its icon and arrow */
+@media (min-width: 640px) {
   .links {
     grid-template-columns: 1fr 1fr;
     gap: 28px 26px;
@@ -702,29 +759,44 @@ a {
   .tx b {
     font-size: 0.98rem;
   }
+}
+
+@media (min-width: 640px) and (max-width: 1039px) {
+  .side {
+    flex-direction: row;
+    align-items: center;
+    gap: 40px;
+  }
+  .note {
+    flex: 1;
+  }
+  .donate {
+    flex: none;
+    align-self: center;
+  }
+}
+
+/* ---------- wide screens ---------- */
+
+@media (min-width: 1040px) {
+  .stage {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    column-gap: 56px;
+    row-gap: 40px;
+    padding: 44px 32px 24px;
+  }
+  .hero {
+    grid-column: 1 / -1;
+    padding-bottom: 84px; /* room for the sticker row under the wordmark */
+  }
   .side {
     padding-top: 28px;
   }
   .foot {
-    grid-column: 1 / -1;
+    padding-inline: 32px;
   }
   .name {
     font-size: clamp(2rem, 8.6vw, 6.9rem);
-  }
-}
-
-@media (max-width: 899px) {
-  .hero {
-    padding-bottom: 66px;
-  }
-  .stickers {
-    bottom: -4px;
-    width: min(100%, calc(var(--count) * 140px));
-  }
-  .corner--a {
-    width: 32px;
-    top: 62px;
-    left: 8px;
   }
 }
 
