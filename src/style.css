@@ -295,6 +295,15 @@ a {
   stroke-width: 1.4;
   transform-box: fill-box;
 }
+.badge.is-hot .badge__disc {
+  fill: var(--hot);
+}
+.blast {
+  position: absolute;
+  z-index: 45;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
 .badge:hover {
   rotate: -4deg;
   scale: 1.07;
