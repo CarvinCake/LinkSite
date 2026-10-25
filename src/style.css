@@ -47,11 +47,20 @@ body {
   min-height: 100svh;
   overflow-x: hidden;
   overflow-x: clip;
-  background: var(--ink);
   color: var(--paper);
   font-family: var(--type);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+/* The black ground is pinned to the screen like the grain and halftone layers, so pulling the page past
+   its edge (rubber-band scrolling) slides only the content, never the background under it. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--ink);
+  pointer-events: none;
 }
 ::selection {
   background: var(--hot);
