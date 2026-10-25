@@ -28,18 +28,28 @@ const SHAPES = [
 ]
 const pick = (list) => list[(Math.random() * list.length) | 0]
 
-const MAX_MARKS = 48
+const MAX_MARKS = 13
+const CURSOR_BLAST = { speed: 1.25, flashScale: 1.15 } // the small explosions: quicker, with a bigger flash
 let marksMade = 0
 
 function stamp(x, y) {
 	if (calm) return
+	if (marksMade >= MAX_MARKS) {
+		// Out of marks: each further click blows up the oldest mark, and once none are left, the click itself
+		const oldest = layer.firstElementChild
+		if (oldest) {
+			const at = [parseFloat(oldest.style.left), parseFloat(oldest.style.top)]
+			oldest.remove()
+			explode(at[0], at[1], 96, 3, CURSOR_BLAST)
+		} else explode(x, y, 96, 3, CURSOR_BLAST)
+		return
+	}
 	const size = 22 + Math.random() * 30
 	const el = document.createElement('span')
 	el.className = 'stampmark'
 	el.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size}px;color:${pick(INK)};rotate:${(Math.random() * 90 - 45) | 0}deg`
 	el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${pick(SHAPES)}</svg>`
 	layer.append(el)
-	if (layer.children.length > MAX_MARKS) layer.firstElementChild.remove()
 	marksMade++
 	refreshTape()
 }
@@ -76,26 +86,29 @@ const weighted = (table) => {
 	for (const [w, make] of table) if ((roll -= w) < 0) return make()
 	return table[0][1]()
 }
+// Small numbers (under 12) get 24%; the other nine kinds share the remaining 76% equally
+const OTHER = 76 / 9
 const number = (make) => () => `YOU ARE VISITOR NO. ${make()}`
 const visitorLine = () =>
 	weighted([
-		[24, number(() => int(1, 120))],
-		[24, number(() => commas(digits(int(4, 7))))],
-		[14, number(() => commas(digits(int(9, 12))))],
-		[12, number(() => `${int(1, 9)}.${int(10, 99)}e+${int(40, 308)}`)],
-		[6, number(() => weighted([
+		[24, number(() => int(1, 11))],
+		[OTHER, number(() => int(12, 120))],
+		[OTHER, number(() => commas(digits(int(4, 7))))],
+		[OTHER, number(() => commas(digits(int(9, 12))))],
+		[OTHER, number(() => `${int(1, 9)}.${int(10, 99)}e+${int(40, 308)}`)],
+		[OTHER, number(() => weighted([
 			[1, () => `0.${int(1, 99)}`],
 			[1, () => `-${int(1, 99)}`],
 			[1, () => '0'.repeat(int(8, 24)) + int(1, 9)],
 		]))],
-		[5, number(() => weighted([
+		[OTHER, number(() => weighted([
 			[3, () => ['π', 'τ', 'φ', 'e', '√2'][int(0, 4)]],
 			[1, () => `${int(2, 9)}π`],
 		]))],
-		[5, number(() => ['ERR_OVERFLOW', 'NaN', 'Infinity', 'undefined', 'ERR_VISITOR_NOT_FOUND', '0x' + digits(8)][int(0, 5)])],
-		[6, () => `YOU ARE THE ${ordinal(int(1, 40))} MOST SUSPICIOUS VISITOR`],
+		[OTHER, number(() => ['ERR_OVERFLOW', 'NaN', 'Infinity', 'undefined', 'ERR_VISITOR_NOT_FOUND', '0x' + digits(8)][int(0, 5)])],
+		[OTHER, () => `YOU ARE THE ${ordinal(int(1, 40))} MOST SUSPICIOUS VISITOR`],
 		[
-			0.7,
+			OTHER,
 			() => {
 				const n = weighted([[50, () => 2], [30, () => 3], [10, () => 4], [5, () => 5], [3, () => int(6, 9)], [2, () => int(10, 40)]])
 				return `YOU ARE VISITOR NO. ${n} IN A ROW FROM YOUR HOUSE`
@@ -232,8 +245,10 @@ const noise = (x, y, seed) => {
 function fireball(g, cx, cy, f, size, frames) {
 	const u = f / (frames - 1)
 	const r = size * Math.min(1, u * 1.7) ** 0.55 * (u > 0.7 ? 1 - (u - 0.7) * 0.45 : 1)
-	for (let by = -r; by <= r; by += 2) {
-		for (let bx = -r; bx <= r; bx += 2) {
+	// 2x2 blocks laid out symmetrically around (cx, cy), each block centred on its own offset
+	const k = Math.floor(r / 2)
+	for (let by = -2 * k; by <= 2 * k; by += 2) {
+		for (let bx = -2 * k; bx <= 2 * k; bx += 2) {
 			const d = Math.hypot(bx, by) / r
 			if (d > 1.05) continue
 			const n = noise(bx, by, 9)
@@ -242,22 +257,68 @@ function fireball(g, cx, cy, f, size, frames) {
 			if (heat <= 0.05) {
 				if (u > 0.4 && edge < 1.05 && n > 0.45) {
 					g.fillStyle = SMOKE[Math.min(3, Math.floor((u - 0.4) * 6 + n * 1.5))]
-					g.fillRect(cx + bx, cy + by - (u - 0.4) * 9, 2, 2)
+					g.fillRect(cx + bx - 1, Math.round(cy + by - 1 - (u - 0.4) * 9), 2, 2)
 				}
 				continue
 			}
 			g.fillStyle = BALL[Math.min(7, Math.floor((1 - Math.min(1, heat)) * 8))]
-			g.fillRect(cx + bx, cy + by, 2, 2)
+			g.fillRect(cx + bx - 1, cy + by - 1, 2, 2)
 		}
 	}
 }
 
-function disc(g, cx, cy, r, color) {
+// The flash: a solid disc with spikes, like a comic-book burst. Spike lengths vary a little and the
+// whole thing turns between frames. `r` is the tip radius; the core disc is about 60% of it.
+function flashBurst(g, cx, cy, r, color, seed) {
+	const spikes = 12
+	const core = r * 0.6
+	const k = Math.ceil(r / 2)
 	g.fillStyle = color
-	for (let y = -r; y <= r; y++) {
-		const half = Math.floor(Math.sqrt(r * r - y * y))
-		g.fillRect(cx - half, cy + y, half * 2 + 1, 1)
+	for (let by = -2 * k; by <= 2 * k; by += 2) {
+		for (let bx = -2 * k; bx <= 2 * k; bx += 2) {
+			const d = Math.hypot(bx, by)
+			if (d > r) continue
+			const turns = (Math.atan2(by, bx) / (Math.PI * 2) + 1) * spikes + seed * 0.37
+			const t = turns % 1
+			const tip = 1 - Math.abs(2 * t - 1) // 0 between spikes, 1 at a tip
+			const len = 0.65 + 0.35 * noise(Math.floor(turns), 5, seed)
+			if (d <= core + (r - core) * tip ** 1.4 * len) g.fillRect(cx + bx - 1, cy + by - 1, 2, 2)
+		}
 	}
+}
+
+// The pixel-art explosion: a low-res canvas centred on (cx, cy) in page coordinates, scaled up with
+// hard pixels. It sits under the grain and scanline layers, so it gets the same CRT treatment as the
+// rest of the page. `delay` is a fuse before the blast, and `onBoom` runs as the flash hits.
+function explode(cx, cy, span, px, { delay = 0, onBoom, speed = 1, flashScale = 1 } = {}) {
+	if (calm) return
+	const size = 2 * Math.ceil(span / px / 2) // even, so the centre falls on a pixel boundary
+	const c = size / 2
+	const cv = document.createElement('canvas')
+	cv.width = cv.height = size
+	cv.className = 'blast'
+	cv.style.cssText = `left:${cx - (size * px) / 2}px;top:${cy - (size * px) / 2}px;width:${size * px}px;height:${size * px}px`
+	document.body.append(cv)
+	const g = cv.getContext('2d')
+	const ballSize = Math.round(size * 0.35)
+	const start = performance.now()
+	let boomAt = 0
+
+	function burn(now) {
+		if (!boomAt && (now - start) / 1000 >= delay) {
+			boomAt = now
+			onBoom?.()
+		}
+		if (boomAt) {
+			const f = Math.floor((now - boomAt) / (80 / speed))
+			if (f >= 12) return cv.remove()
+			g.clearRect(0, 0, size, size)
+			if (f < 2) flashBurst(g, c, c, Math.round(size * (f ? 0.161 : 0.2415) * flashScale), f ? '#fff2a8' : '#ffffff', f + 3)
+			fireball(g, c, c, f, ballSize, 12)
+		}
+		requestAnimationFrame(burn)
+	}
+	requestAnimationFrame(burn)
 }
 
 function detonate() {
@@ -265,41 +326,15 @@ function detonate() {
 	held = null
 	badge.style.scale = ''
 	badge.classList.add('is-hot')
-	// A low-res canvas over the badge, scaled up with hard pixels. It sits under the grain and
-	// scanline layers, so the explosion gets the same CRT treatment as everything else.
 	const box = badge.getBoundingClientRect()
-	const px = box.width < 120 ? 3 : 4
-	const size = Math.ceil((box.width * 2.5) / px)
-	const left = box.left + scrollX + box.width / 2 - (size * px) / 2
-	const top = box.top + scrollY + box.height / 2 - (size * px) / 2
-	const c = Math.round(size / 2)
-	const cv = document.createElement('canvas')
-	cv.width = cv.height = size
-	cv.className = 'blast'
-	cv.style.cssText = `left:${left}px;top:${top}px;width:${size * px}px;height:${size * px}px`
-	document.body.append(cv)
-	const g = cv.getContext('2d')
-	const ballSize = Math.round((box.width / 2 / px) * 1.75)
-	const start = performance.now()
-	let boomAt = 0
-
-	function burn(now) {
-		if (!boomAt && (now - start) / 1000 >= FUSE) {
+	explode(box.left + scrollX + box.width / 2, box.top + scrollY + box.height / 2, box.width * 2.5, box.width < 120 ? 3 : 4, {
+		delay: FUSE,
+		onBoom() {
 			// the real badge is gone under the flash
-			boomAt = now
 			cancelAnimationFrame(frame)
 			badge.remove()
-		}
-		if (boomAt) {
-			const f = Math.floor((now - boomAt) / 80)
-			if (f >= 12) return cv.remove()
-			g.clearRect(0, 0, size, size)
-			if (f < 2) disc(g, c, c, Math.floor(size / 2) - (f ? 12 : 0), f ? '#fff2a8' : '#ffffff')
-			fireball(g, c, c, f, ballSize, 12)
-		}
-		requestAnimationFrame(burn)
-	}
-	requestAnimationFrame(burn)
+		},
+	})
 }
 
 function launch() {

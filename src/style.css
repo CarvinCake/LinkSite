@@ -34,6 +34,7 @@ html {
 }
 body {
   position: relative;
+  display: flow-root; /* keeps the tape's top margin inside body, so page coordinates match the body's box */
   margin: 0;
   min-height: 100svh;
   overflow-x: hidden;
