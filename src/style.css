@@ -190,7 +190,7 @@ a {
 .tape__track {
   display: flex;
   width: max-content;
-  animation: slide 28s linear infinite;
+  animation: slide var(--tape-time, 14s) linear infinite; /* the duration is set from main.js */
 }
 .tape__track > div {
   flex: none;

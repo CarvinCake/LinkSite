@@ -165,6 +165,21 @@ function refreshTape() {
 refreshTape()
 setInterval(() => !document.hidden && refreshTape(), 5000)
 
+// The tape runs at a fixed speed in pixels, so it reads at the same pace on every screen. One loop slides
+// the track by one copy (the CSS animation's -50%), so its duration follows the copy's width. When that
+// width changes (a line updates, the window resizes) the tape keeps its pixel position instead of jumping.
+const TAPE_SPEED = 85 // px per second
+let copyWidth = 0
+new ResizeObserver(() => {
+	const width = track.offsetWidth / 2
+	if (!width || width === copyWidth) return
+	const roll = track.getAnimations()[0]
+	const offset = roll && copyWidth ? (((roll.currentTime ?? 0) / 1000) * TAPE_SPEED) % copyWidth : 0
+	copyWidth = width
+	track.style.setProperty('--tape-time', `${width / TAPE_SPEED}s`)
+	if (roll) roll.currentTime = ((offset % width) / TAPE_SPEED) * 1000
+}).observe(track)
+
 // Floating stickers (the badges at the top right) have momentum. Taps give a ring a kick that stacks
 // when they come fast. Holding winds it up (the ring creeps backwards and the sticker squashes while
 // energy builds) and it only launches when you let go. Drag then slows it back to its idle drift.
